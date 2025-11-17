@@ -79,7 +79,7 @@
 #define DEFAULT_COLSHIFT_SPEED 1 // needs to be between larger than 0 (1 = slowest, 255 = fastest)
 #define DEFAULT_COLSHIFT_ACTIVE 0 // if dynamic color shift is active (0 = deactivated, 1 = activated)
 
-#define NEOPIXELPIN 5       // pin to which the NeoPixels are attached
+#define NEOPIXELPIN 2       // pin to which the NeoPixels are attached
 #define BUTTONPIN 14        // pin to which the button is attached
 #define LEFT 1
 #define RIGHT 2
@@ -114,7 +114,7 @@ enum direction {right, left, up, down};
 // width of the led matrix
 #define WIDTH 11
 // height of the led matrix
-#define HEIGHT 11
+#define HEIGHT 10
 
 // own datatype for state machine states
 #define NUM_STATES 6
