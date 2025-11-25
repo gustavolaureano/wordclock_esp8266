@@ -1,5 +1,16 @@
 
-const String clockStringGerman =  "ESPISTAFUNFVIERTELZEHNZWANZIGUVORTECHNICNACHHALBMELFUNFXCONTROLLEREINSEAWZWEIDREITUMVIERSECHSQYACHTSIEBENZWOLFZEHNEUNJUHR";
+const String clockStringGerman =  "QUATROCINCOOITODEZTRESNOVESETEUMAONZEDUASEISDOZEIHORASBETTRINTADEZQUINZEVINTEKQUARENTATUGCINQUENTASNMEIAXCINCO";
+
+//   QUATROCINCO
+//   OITODEZTRES
+//   NOVESETEUMA
+//   ONZEDUASEIS
+//   DOZEIHORASB
+//   ETTRINTADEZ
+//   QUIZEXVINTE
+//   KQUARENTATU
+//   GCINQUENTAS
+//   NMEIAXCINCO
 
 /**
  * @brief control the four minute indicator LEDs
@@ -71,6 +82,13 @@ int showStringOnClock(String message, uint32_t color){
           }
           // remember end of the word on clock
           lastLetterClock = positionOfWord + word.length();
+
+          if ((lastLetterClock+1)%WIDTH != 0)
+          {
+            // Next character does not start on a new line, 
+            // so we must give a 1 char space to the next word
+            lastLetterClock++;
+          }
         }
         else{
           // word is not possible to show on clock
@@ -96,117 +114,106 @@ int showStringOnClock(String message, uint32_t color){
 String timeToString(uint8_t hours,uint8_t minutes){
   
   //ES IST
-  String message = "ES IST ";
+  String message = "";
 
-  
-  //show minutes
-  if(minutes >= 5 && minutes < 10)
-  {
-    message += "FUNF NACH ";
-  }
-  else if(minutes >= 10 && minutes < 15)
-  {
-    message += "ZEHN NACH ";
-  }
-  else if(minutes >= 15 && minutes < 20)
-  {
-    message += "VIERTEL NACH ";
-  }
-  else if(minutes >= 20 && minutes < 25)
-  {
-    message += "ZEHN VOR HALB "; 
-  }
-  else if(minutes >= 25 && minutes < 30)
-  {
-    message += "FUNF VOR HALB ";
-  }
-  else if(minutes >= 30 && minutes < 35)
-  {
-    message += "HALB ";
-  }
-  else if(minutes >= 35 && minutes < 40)
-  {
-    message += "FUNF NACH HALB ";
-  }
-  else if(minutes >= 40 && minutes < 45)
-  {
-    message += "ZEHN NACH HALB ";
-  }
-  else if(minutes >= 45 && minutes < 50)
-  {
-    message += "VIERTEL VOR ";
-  }
-  else if(minutes >= 50 && minutes < 55)
-  {
-    message += "ZEHN VOR ";
-  }
-  else if(minutes >= 55 && minutes < 60)
-  {
-    message += "FUNF VOR ";
-  }
+  hours %= 12;
 
-  //convert hours to 12h format
-  if(hours >= 12)
-  {
-      hours -= 12;
-  }
-  if(minutes >= 20)
-  {
-      hours++;
-  }
-  if(hours == 12)
-  {
-      hours = 0;
-  }
-
-  // show hours
   switch(hours)
   {
   case 0:
-    message += "ZWOLF ";
+    message += "DOZE ";
     break;
   case 1:
-    message += "EIN";
-    //EIN(S)
-    if(minutes > 4){
-      message += "S";
-    }
-    message += " ";
+    message += "UMA ";
     break;
   case 2:
-    message += "ZWEI ";
+    message += "DUAS ";
     break;
   case 3:
-    message += "DREI ";
+    message += "TRES ";
     break;
   case 4:
-    message += "VIER ";
+    message += "QUATRO ";
     break;
   case 5:
-    message += "FUNF ";
+    message += "CINCO ";
     break;
   case 6:
-    message += "SECHS ";
+    message += "SEIS ";
     break;
   case 7:
-    message += "SIEBEN ";
+    message += "SETE ";
     break;
   case 8:
-    message += "ACHT ";
+    message += "OITO ";
     break;
   case 9:
-    message += "NEUN ";
+    message += "NOVE ";
     break;
   case 10:
-    message += "ZEHN ";
+    message += "DEZ ";
     break;
   case 11:
-    message += "ELF ";
+    message += "ONZE ";
     break;
   }
+
   if(minutes < 5)
   {
-    message += "UHR ";
+    if (hours == 1)
+    {
+      message += "HORA ";
+    }
+    else
+    {
+      message += "HORAS ";
+    }
+  }
+ 
+  //show minutes
+  if(minutes >= 5 && minutes < 10)
+  {
+    message += "E CINCO ";
+  }
+  else if(minutes >= 10 && minutes < 15)
+  {
+    message += "E DEZ ";
+  }
+  else if(minutes >= 15 && minutes < 20)
+  {
+    message += "E QUINZE";
+  }
+  else if(minutes >= 20 && minutes < 25)
+  {
+    message += "E VINTE "; 
+  }
+  else if(minutes >= 25 && minutes < 30)
+  {
+    message += "E VINTE E CINCO ";
+  }
+  else if(minutes >= 30 && minutes < 35)
+  {
+    message += "E MEIA ";
+  }
+  else if(minutes >= 35 && minutes < 40)
+  {
+    message += "E TRINTA E CINCO ";
+  }
+  else if(minutes >= 40 && minutes < 45)
+  {
+    message += "E QUARENTA ";
+  }
+  else if(minutes >= 45 && minutes < 50)
+  {
+    message += "E QUARENTA E CINCO ";
+  }
+  else if(minutes >= 50 && minutes < 55)
+  {
+    message += "E CINQUENTA ";
+  }
+  else if(minutes >= 55 && minutes < 60)
+  {
+    message += "E CINQUENTA E CINCO ";
   }
 
   logger.logString("time as String: " + String(message));

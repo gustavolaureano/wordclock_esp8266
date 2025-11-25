@@ -1,16 +1,17 @@
 
-const String clockStringGerman =  "QUATROCINCOOITODEZTRESNOVESETEUMAONZEDUASEISDOZEIHORASBETTRINTADEZQUINZEVINTEKQUARENTATUGCINQUENTASNMEIAXCINCO";
+const String clockStringGerman =  "ESKISTLFUNFZEHNZWANZIGDREIVIERTELTGNACHVORJMHALBXZWOLFPZWEINSIEBENKDREIRHFUNFELFNEUNVIERWACHTZEHNRSRSECHSFMUHRFV1X2N3S4PT";
 
-//   QUATROCINCO
-//   OITODEZTRES
-//   NOVESETEUMA
-//   ONZEDUASEIS
-//   DOZEIHORASB
-//   ETTRINTADEZ
-//   QUIZEXVINTE
-//   KQUARENTATU
-//   GCINQUENTAS
-//   NMEIAXCINCO
+// ESKISTLFUNF
+// ZEHNZWANZIG
+// DREIVIERTEL
+// TGNACHVORJM
+// HALBXZWOLFP
+// ZWEINSIEBEN
+// KDREIRHFUNF
+// ELFNEUNVIER
+// WACHTZEHNRS
+// RSECHSFMUHR
+// FV1X2N3S4PT
 
 /**
  * @brief control the four minute indicator LEDs
@@ -20,29 +21,29 @@ const String clockStringGerman =  "QUATROCINCOOITODEZTRESNOVESETEUMAONZEDUASEISD
  */
 void drawMinuteIndicator(uint8_t minutes, uint32_t color){
   //separate LEDs for minutes in an additional row
-  {
-  switch (minutes%5)
-    { 
-      case 0:
-        break;
+  // {
+  // switch (minutes%5)
+  //   { 
+  //     case 0:
+  //       break;
           
-      case 1:
-        ledmatrix.setMinIndicator(0b1000, color);
-        break;
+  //     case 1:
+  //       ledmatrix.setMinIndicator(0b1000, color);
+  //       break;
 
-      case 2:
-        ledmatrix.setMinIndicator(0b1100, color);
-        break;
+  //     case 2:
+  //       ledmatrix.setMinIndicator(0b1100, color);
+  //       break;
 
-      case 3:
-        ledmatrix.setMinIndicator(0b1110, color);
-        break;
+  //     case 3:
+  //       ledmatrix.setMinIndicator(0b1110, color);
+  //       break;
 
-      case 4:
-        ledmatrix.setMinIndicator(0b1111, color);
-        break;
-    }
-  }
+  //     case 4:
+  //       ledmatrix.setMinIndicator(0b1111, color);
+  //       break;
+  //   }
+  // }
 }
 
 /**
@@ -82,13 +83,6 @@ int showStringOnClock(String message, uint32_t color){
           }
           // remember end of the word on clock
           lastLetterClock = positionOfWord + word.length();
-
-          if ((lastLetterClock+1)%WIDTH != 0)
-          {
-            // Next character does not start on a new line, 
-            // so we must give a 1 char space to the next word
-            lastLetterClock++;
-          }
         }
         else{
           // word is not possible to show on clock
@@ -114,106 +108,136 @@ int showStringOnClock(String message, uint32_t color){
 String timeToString(uint8_t hours,uint8_t minutes){
   
   //ES IST
-  String message = "";
+  String message = "ES IST ";
 
-  hours %= 12;
-
-  switch(hours)
-  {
-  case 0:
-    message += "DOZE ";
-    break;
-  case 1:
-    message += "UMA ";
-    break;
-  case 2:
-    message += "DUAS ";
-    break;
-  case 3:
-    message += "TRES ";
-    break;
-  case 4:
-    message += "QUATRO ";
-    break;
-  case 5:
-    message += "CINCO ";
-    break;
-  case 6:
-    message += "SEIS ";
-    break;
-  case 7:
-    message += "SETE ";
-    break;
-  case 8:
-    message += "OITO ";
-    break;
-  case 9:
-    message += "NOVE ";
-    break;
-  case 10:
-    message += "DEZ ";
-    break;
-  case 11:
-    message += "ONZE ";
-    break;
-  }
-
-  if(minutes < 5)
-  {
-    if (hours == 1)
-    {
-      message += "HORA ";
-    }
-    else
-    {
-      message += "HORAS ";
-    }
-  }
- 
+  
   //show minutes
   if(minutes >= 5 && minutes < 10)
   {
-    message += "E CINCO ";
+    message += "FUNF NACH ";
   }
   else if(minutes >= 10 && minutes < 15)
   {
-    message += "E DEZ ";
+    message += "ZEHN NACH ";
   }
   else if(minutes >= 15 && minutes < 20)
   {
-    message += "E QUINZE";
+    message += "VIERTEL NACH ";
   }
   else if(minutes >= 20 && minutes < 25)
   {
-    message += "E VINTE "; 
+    message += "ZEHN VOR HALB "; 
   }
   else if(minutes >= 25 && minutes < 30)
   {
-    message += "E VINTE E CINCO ";
+    message += "FUNF VOR HALB ";
   }
   else if(minutes >= 30 && minutes < 35)
   {
-    message += "E MEIA ";
+    message += "HALB ";
   }
   else if(minutes >= 35 && minutes < 40)
   {
-    message += "E TRINTA E CINCO ";
+    message += "FUNF NACH HALB ";
   }
   else if(minutes >= 40 && minutes < 45)
   {
-    message += "E QUARENTA ";
+    message += "ZEHN NACH HALB ";
   }
   else if(minutes >= 45 && minutes < 50)
   {
-    message += "E QUARENTA E CINCO ";
+    message += "VIERTEL VOR ";
   }
   else if(minutes >= 50 && minutes < 55)
   {
-    message += "E CINQUENTA ";
+    message += "ZEHN VOR ";
   }
   else if(minutes >= 55 && minutes < 60)
   {
-    message += "E CINQUENTA E CINCO ";
+    message += "FUNF VOR ";
+  }
+
+  //convert hours to 12h format
+  if(hours >= 12)
+  {
+      hours -= 12;
+  }
+  if(minutes >= 20)
+  {
+      hours++;
+  }
+  if(hours == 12)
+  {
+      hours = 0;
+  }
+
+  // show hours
+  switch(hours)
+  {
+  case 0:
+    message += "ZWOLF ";
+    break;
+  case 1:
+    message += "EIN";
+    //EIN(S)
+    if(minutes > 4){
+      message += "S";
+    }
+    message += " ";
+    break;
+  case 2:
+    message += "ZWEI ";
+    break;
+  case 3:
+    message += "DREI ";
+    break;
+  case 4:
+    message += "VIER ";
+    break;
+  case 5:
+    message += "FUNF ";
+    break;
+  case 6:
+    message += "SECHS ";
+    break;
+  case 7:
+    message += "SIEBEN ";
+    break;
+  case 8:
+    message += "ACHT ";
+    break;
+  case 9:
+    message += "NEUN ";
+    break;
+  case 10:
+    message += "ZEHN ";
+    break;
+  case 11:
+    message += "ELF ";
+    break;
+  }
+  if(minutes < 5)
+  {
+    message += "UHR ";
+  }
+
+  int restMinutes = minutes % 5;
+
+  if (restMinutes >= 1)
+  {
+    message += "1 ";
+  }
+  if (restMinutes >= 2)
+  {
+    message += "2 ";
+  }
+  if (restMinutes >= 3)
+  {
+    message += "3 ";
+  }
+  if (restMinutes >= 4)
+  {
+    message += "4 ";
   }
 
   logger.logString("time as String: " + String(message));
