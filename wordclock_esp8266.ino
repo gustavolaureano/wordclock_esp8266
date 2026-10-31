@@ -48,10 +48,10 @@
 //                                        CONSTANTS
 // ----------------------------------------------------------------------------------
 
-#define EEPROM_VERSION_CODE   4  // Change this value when defaults settings change
+#define EEPROM_VERSION_CODE   5  // Change this value when defaults settings change
 
 // EEPROM address map
-#define EEPROM_SIZE          17  // size of EEPROM to save persistent variables
+#define EEPROM_SIZE          18  // size of EEPROM to save persistent variables
 #define ADR_EEPROM_VERSION    0  // uint8_t
 #define ADR_NM_START_H        1  // uint8_t
 #define ADR_NM_END_H          2  // uint8_t
@@ -68,6 +68,7 @@
 #define ADR_NM_BRIGHTNESS    13  // uint8_t
 #define ADR_MANUAL_TIMEZONE  14  // uint8_t
 #define ADR_TIMEZONE_OFFSET  15  // int16_t, UTC offset in minutes
+#define ADR_FRONT_PLATE_LANGUAGE 17  // uint8_t
 
 // DEFAULT SETTINGS (if one changes this, also increment the EEPROM_VERSION_CODE, to ensure that the EEPROM is updated with the new defaults)
 #define DEFAULT_NM_START_HOUR 22 // default start hour of nightmode (0-23)
@@ -84,6 +85,9 @@
 #define DEFAULT_COLSHIFT_ACTIVE 0 // if dynamic color shift is active (0 = deactivated, 1 = activated)
 #define DEFAULT_MANUAL_TIMEZONE 0 // use automatic timezone detection by default
 #define DEFAULT_TIMEZONE_OFFSET 60 // UTC offset in minutes used if automatic detection is unavailable
+#define FRONT_PLATE_GERMAN 0
+#define FRONT_PLATE_PT_BR 1
+#define DEFAULT_FRONT_PLATE_LANGUAGE FRONT_PLATE_GERMAN
 
 #define NEOPIXELPIN 2       // pin to which the NeoPixels are attached
 #define BUTTONPIN 14        // pin to which the button is attached
@@ -150,6 +154,7 @@ const char WebserverURL[] = "www.wordclock.local";
 
 int utcOffset = DEFAULT_TIMEZONE_OFFSET; // UTC offset in minutes
 bool manualTimezone = DEFAULT_MANUAL_TIMEZONE;
+uint8_t frontPlateLanguage = DEFAULT_FRONT_PLATE_LANGUAGE;
 
 // ----------------------------------------------------------------------------------
 //                                        GLOBAL VARIABLES
@@ -250,9 +255,12 @@ void setup() {
   // Check EEPROM version code
   uint8_t storedVersion = EEPROM.read(ADR_EEPROM_VERSION);
   if (storedVersion != EEPROM_VERSION_CODE) {
-    if (storedVersion == 3) {
-      EEPROM.write(ADR_MANUAL_TIMEZONE, DEFAULT_MANUAL_TIMEZONE);
-      EEPROM.put(ADR_TIMEZONE_OFFSET, static_cast<int16_t>(DEFAULT_TIMEZONE_OFFSET));
+    if (storedVersion == 3 || storedVersion == 4) {
+      if (storedVersion == 3) {
+        EEPROM.write(ADR_MANUAL_TIMEZONE, DEFAULT_MANUAL_TIMEZONE);
+        EEPROM.put(ADR_TIMEZONE_OFFSET, static_cast<int16_t>(DEFAULT_TIMEZONE_OFFSET));
+      }
+      EEPROM.write(ADR_FRONT_PLATE_LANGUAGE, DEFAULT_FRONT_PLATE_LANGUAGE);
       EEPROM.write(ADR_EEPROM_VERSION, EEPROM_VERSION_CODE);
     }
     else {
@@ -271,6 +279,7 @@ void setup() {
       EEPROM.write(ADR_NM_BRIGHTNESS, DEFAULT_NM_BRIGHTNESS);
       EEPROM.write(ADR_MANUAL_TIMEZONE, DEFAULT_MANUAL_TIMEZONE);
       EEPROM.put(ADR_TIMEZONE_OFFSET, static_cast<int16_t>(DEFAULT_TIMEZONE_OFFSET));
+      EEPROM.write(ADR_FRONT_PLATE_LANGUAGE, DEFAULT_FRONT_PLATE_LANGUAGE);
     }
     EEPROM.commit();
   }
@@ -420,6 +429,7 @@ void setup() {
   loadBrightnessSettingsFromEEPROM();
   loadColorShiftStateFromEEPROM();
   loadNightmodeBrightnessFromEEPROM();
+  loadFrontPlateLanguageFromEEPROM();
   
   if(ESP.getResetReason().equals("Power On") || ESP.getResetReason().equals("External System")){
     // test quickly each LED
@@ -618,11 +628,13 @@ void updateStateBehavior(uint8_t state){
         uint8_t minutes = ntp.getMinutes();
         static uint8_t lastHours = 255;
         static uint8_t lastMinutes = 255;
+        static uint8_t lastLanguage = 255;
         static String timeAsString = "";
-        if(lastHours != hours || lastMinutes != minutes){
+        if(lastHours != hours || lastMinutes != minutes || lastLanguage != frontPlateLanguage){
           timeAsString = timeToString(hours, minutes);
           lastHours = hours;
           lastMinutes = minutes;
+          lastLanguage = frontPlateLanguage;
         }
         showStringOnClock(timeAsString, maincolor_clock);
         drawMinuteIndicator(minutes, maincolor_clock);
@@ -1004,6 +1016,18 @@ void loadTimezoneSettingsFromEEPROM()
 }
 
 /**
+ * @brief Load the selected front plate language from EEPROM
+ */
+void loadFrontPlateLanguageFromEEPROM()
+{
+  uint8_t storedLanguage = EEPROM.read(ADR_FRONT_PLATE_LANGUAGE);
+  if (storedLanguage > FRONT_PLATE_PT_BR) {
+    storedLanguage = DEFAULT_FRONT_PLATE_LANGUAGE;
+  }
+  frontPlateLanguage = storedLanguage;
+}
+
+/**
  * @brief Handler for handling commands sent to "/cmd" url
  * 
  */
@@ -1138,6 +1162,24 @@ void handleCommand() {
       updateStateBehavior(currentState);
       ledmatrix.drawOnMatrixInstant();
     }
+  }
+  else if(server.argName(0) == "frontplate"){
+    String languageValue = server.arg("frontplate");
+    if (languageValue != String(FRONT_PLATE_GERMAN) &&
+        languageValue != String(FRONT_PLATE_PT_BR)) {
+      server.send(400, "text/plain", "Invalid front plate language");
+      return;
+    }
+
+    frontPlateLanguage = languageValue.toInt();
+    EEPROM.write(ADR_FRONT_PLATE_LANGUAGE, frontPlateLanguage);
+    EEPROM.commit();
+    logger.logString("Front plate language: " +
+                     String(frontPlateLanguage == FRONT_PLATE_PT_BR ? "pt-br" : "German"));
+    if (currentState == st_clock) {
+      updateStateBehavior(currentState);
+    }
+    ledmatrix.drawOnMatrixInstant();
   }
   else if (server.argName(0) == "resetwifi"){
     wifiManager.resetSettings();
@@ -1298,6 +1340,8 @@ void handleDataRequest() {
       message += "\"manualTimezone\":\"" + String(manualTimezone) + "\"";
       message += ",";
       message += "\"utcOffset\":\"" + String(utcOffset) + "\"";
+      message += ",";
+      message += "\"frontPlateLanguage\":\"" + String(frontPlateLanguage) + "\"";
     }
     message += "}";
     server.send(200, "application/json", message);

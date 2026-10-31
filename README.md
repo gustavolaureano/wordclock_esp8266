@@ -21,6 +21,7 @@ Full tutorial and build instructions on https://techniccontroller.com/word-clock
 - Real-time clock synchronized over Wi-Fi using NTP
 - Automatic daylight saving time (summer/winter) switching
 - Automatic timezone detection by default, with an option to select a GMT offset manually in the web settings
+- Selectable German or Brazilian Portuguese front plate layout
 - Easy Wi-Fi setup with WiFiManager
 - Configurable color themes
 - Customizable night mode (start/end time)

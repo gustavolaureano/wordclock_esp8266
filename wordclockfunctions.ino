@@ -12,6 +12,19 @@ const String clockStringGerman =  "ESHISTKFUNFUNDZWANZIGKZEHNVIERTELVORFUNKNACHH
 // SIEBENZWOLF
 // ZEHNEUNUHRX
 
+const String clockStringPortuguese = "QUATROCINCOOITODEZTRESNOVESETEUMAONZEDUASEISDOZEIHORASBETTRINTADEZQUINZEVINTEKQUARENTATUGCINQUENTASNMEIAXCINCO";
+
+//   QUATROCINCO
+//   OITODEZTRES
+//   NOVESETEUMA
+//   ONZEDUASEIS
+//   DOZEIHORASB
+//   ETTRINTADEZ
+//   QUIZEXVINTE
+//   KQUARENTATU
+//   GCINQUENTAS
+//   NMEIAXCINCO
+
 /**
  * @brief control the four minute indicator LEDs
  * 
@@ -54,6 +67,9 @@ void drawMinuteIndicator(uint8_t minutes, uint32_t color){
  */
 int showStringOnClock(String message, uint32_t color){
     String word = "";
+    const String& clockString = frontPlateLanguage == FRONT_PLATE_PT_BR
+      ? clockStringPortuguese
+      : clockStringGerman;
     int lastLetterClock = 0;
     int positionOfWord  = 0;
     int index = 0;
@@ -71,7 +87,7 @@ int showStringOnClock(String message, uint32_t color){
       
       if(word.length() > 0){
         // find word in clock string
-        positionOfWord = clockStringGerman.indexOf(word, lastLetterClock);
+        positionOfWord = clockString.indexOf(word, lastLetterClock);
         
         if(positionOfWord >= 0){
           // word found on clock -> enable leds in targetgrid
@@ -82,6 +98,13 @@ int showStringOnClock(String message, uint32_t color){
           }
           // remember end of the word on clock
           lastLetterClock = positionOfWord + word.length();
+          
+          if ((lastLetterClock+1)%WIDTH != 0)
+          {
+            // Next character does not start on a new line, 
+            // so we must give a 1 char space to the next word
+            lastLetterClock++;
+          }
         }
         else{
           // word is not possible to show on clock
@@ -105,6 +128,9 @@ int showStringOnClock(String message, uint32_t color){
  * @return String time as sentence
  */
 String timeToString(uint8_t hours,uint8_t minutes){
+  if (frontPlateLanguage == FRONT_PLATE_PT_BR) {
+    return timeToStringPortuguese(hours, minutes);
+  }
   
   //ES IST
   String message = "ES IST ";
@@ -225,3 +251,90 @@ String timeToString(uint8_t hours,uint8_t minutes){
   return message;
 }
 
+/**
+ * @brief Converts the given time to the Portuguese front plate sentence
+ */
+String timeToStringPortuguese(uint8_t hours, uint8_t minutes){
+  String message = "";
+  hours %= 12;
+
+  switch(hours)
+  {
+  case 0:
+    message += "DOZE ";
+    break;
+  case 1:
+    message += "UMA ";
+    break;
+  case 2:
+    message += "DUAS ";
+    break;
+  case 3:
+    message += "TRES ";
+    break;
+  case 4:
+    message += "QUATRO ";
+    break;
+  case 5:
+    message += "CINCO ";
+    break;
+  case 6:
+    message += "SEIS ";
+    break;
+  case 7:
+    message += "SETE ";
+    break;
+  case 8:
+    message += "OITO ";
+    break;
+  case 9:
+    message += "NOVE ";
+    break;
+  case 10:
+    message += "DEZ ";
+    break;
+  case 11:
+    message += "ONZE ";
+    break;
+  }
+
+  if(minutes < 5){
+    message += hours == 1 ? "HORA " : "HORAS ";
+  }
+  else if(minutes < 10){
+    message += "E CINCO ";
+  }
+  else if(minutes < 15){
+    message += "E DEZ ";
+  }
+  else if(minutes < 20){
+    message += "E QUINZE ";
+  }
+  else if(minutes < 25){
+    message += "E VINTE ";
+  }
+  else if(minutes < 30){
+    message += "E VINTE E CINCO ";
+  }
+  else if(minutes < 35){
+    message += "E MEIA ";
+  }
+  else if(minutes < 40){
+    message += "E TRINTA E CINCO ";
+  }
+  else if(minutes < 45){
+    message += "E QUARENTA ";
+  }
+  else if(minutes < 50){
+    message += "E QUARENTA E CINCO ";
+  }
+  else if(minutes < 55){
+    message += "E CINQUENTA ";
+  }
+  else{
+    message += "E CINQUENTA E CINCO ";
+  }
+
+  logger.logString("time as String: " + message);
+  return message;
+}
