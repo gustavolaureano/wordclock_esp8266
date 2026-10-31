@@ -243,7 +243,7 @@
 	}
 
 	.show{
-		height: 320px;
+		height: 410px;
 		transition: height 1s;
 	}
 
@@ -253,6 +253,10 @@
 		justify-content: left;
 		align-items: center;
 		margin: 10px;
+	}
+
+	select{
+		max-width: 150px;
 	}
 
 	.save-button{
@@ -297,6 +301,44 @@
 				<div>
 					<input name= "NightMode" id="NightMode" type="checkbox" class="toggle">
 				</div>
+			</div>
+			<div class="checkbox-container">
+				<label for="ManualTimezone" style="align-self: flex-start">Manual timezone</label>
+				<div>
+					<input name="ManualTimezone" id="ManualTimezone" type="checkbox" class="toggle">
+				</div>
+			</div>
+			<div class="number-container">
+				<label for="timezoneOffset">GMT offset:</label>
+				<select id="timezoneOffset">
+					<option value="-720">GMT-12:00</option>
+					<option value="-660">GMT-11:00</option>
+					<option value="-600">GMT-10:00</option>
+					<option value="-540">GMT-09:00</option>
+					<option value="-480">GMT-08:00</option>
+					<option value="-420">GMT-07:00</option>
+					<option value="-360">GMT-06:00</option>
+					<option value="-300">GMT-05:00</option>
+					<option value="-240">GMT-04:00</option>
+					<option value="-180">GMT-03:00</option>
+					<option value="-120">GMT-02:00</option>
+					<option value="-60">GMT-01:00</option>
+					<option value="0">GMT+00:00</option>
+					<option value="60">GMT+01:00</option>
+					<option value="120">GMT+02:00</option>
+					<option value="180">GMT+03:00</option>
+					<option value="240">GMT+04:00</option>
+					<option value="300">GMT+05:00</option>
+					<option value="360">GMT+06:00</option>
+					<option value="420">GMT+07:00</option>
+					<option value="480">GMT+08:00</option>
+					<option value="540">GMT+09:00</option>
+					<option value="600">GMT+10:00</option>
+					<option value="660">GMT+11:00</option>
+					<option value="720">GMT+12:00</option>
+					<option value="780">GMT+13:00</option>
+					<option value="840">GMT+14:00</option>
+				</select>
 			</div>
 			<div class="checkbox-container">
 				<label for="ResetWifi" style="align-self: flex-start">Reset Wifi</label> 
@@ -542,6 +584,14 @@
 					document.getElementById("brightness").value = parseInt(myVar.brightness);
 					document.getElementById("nm_brightness").value = parseInt(myVar.nightModeBrightness);
 					document.getElementById("colorshiftspeed").value = parseInt(myVar.colorshiftspeed);
+					var manualTimezone = document.getElementById("ManualTimezone");
+					var timezoneOffset = document.getElementById("timezoneOffset");
+					manualTimezone.checked = myVar.manualTimezone == "1";
+					timezoneOffset.value = myVar.utcOffset;
+					timezoneOffset.disabled = !manualTimezone.checked;
+					manualTimezone.addEventListener("change", () => {
+						timezoneOffset.disabled = !manualTimezone.checked;
+					});
 
 					updateDisplay(parseInt(myVar.modeid));
 					console.log(myVar);
@@ -614,6 +664,8 @@
 				var sld_nm_brightness = document.getElementById("nm_brightness");
 				var sld_colorshiftspeed = document.getElementById("colorshiftspeed");
 				var ckb_resetWifi = document.querySelector('input[id="ResetWifi"]');
+				var ckb_manualTimezone = document.getElementById("ManualTimezone");
+				var timezoneOffset = document.getElementById("timezoneOffset");
 				var cmdstr = "./cmd?setting=";
 				cmdstr += nmStart.value.replace(":", "-");
 				cmdstr += "-";
@@ -626,6 +678,7 @@
 				cmdstr += sld_nm_brightness.value;
 				console.log(cmdstr);
 				sendCommand(cmdstr);
+				sendCommand("./cmd?timezone=" + (ckb_manualTimezone.checked ? "1" : "0") + "&offset=" + timezoneOffset.value);
 				if(ckb_resetWifi.checked) {
 					sendCommand("./cmd?resetwifi");
 				}

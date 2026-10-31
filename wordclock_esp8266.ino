@@ -48,10 +48,10 @@
 //                                        CONSTANTS
 // ----------------------------------------------------------------------------------
 
-#define EEPROM_VERSION_CODE   3  // Change this value when defaults settings change
+#define EEPROM_VERSION_CODE   4  // Change this value when defaults settings change
 
-// EEPROM address map (all uint8_t, 1 byte each)
-#define EEPROM_SIZE          14  // size of EEPROM to save persistent variables
+// EEPROM address map
+#define EEPROM_SIZE          17  // size of EEPROM to save persistent variables
 #define ADR_EEPROM_VERSION    0  // uint8_t
 #define ADR_NM_START_H        1  // uint8_t
 #define ADR_NM_END_H          2  // uint8_t
@@ -66,6 +66,8 @@
 #define ADR_COLSHIFTSPEED    11  // uint8_t
 #define ADR_COLSHIFTACTIVE   12  // uint8_t
 #define ADR_NM_BRIGHTNESS    13  // uint8_t
+#define ADR_MANUAL_TIMEZONE  14  // uint8_t
+#define ADR_TIMEZONE_OFFSET  15  // int16_t, UTC offset in minutes
 
 // DEFAULT SETTINGS (if one changes this, also increment the EEPROM_VERSION_CODE, to ensure that the EEPROM is updated with the new defaults)
 #define DEFAULT_NM_START_HOUR 22 // default start hour of nightmode (0-23)
@@ -80,6 +82,8 @@
 #define DEFAULT_NM_BRIGHTNESS 0 // default brightness during night mode (0-255)
 #define DEFAULT_COLSHIFT_SPEED 1 // needs to be between larger than 0 (1 = slowest, 255 = fastest)
 #define DEFAULT_COLSHIFT_ACTIVE 0 // if dynamic color shift is active (0 = deactivated, 1 = activated)
+#define DEFAULT_MANUAL_TIMEZONE 0 // use automatic timezone detection by default
+#define DEFAULT_TIMEZONE_OFFSET 60 // UTC offset in minutes used if automatic detection is unavailable
 
 #define NEOPIXELPIN 2       // pin to which the NeoPixels are attached
 #define BUTTONPIN 14        // pin to which the button is attached
@@ -144,7 +148,8 @@ const String hostname = "wordclock";
 // URL DNS server
 const char WebserverURL[] = "www.wordclock.local";
 
-int utcOffset = 60; // UTC offset in minutes
+int utcOffset = DEFAULT_TIMEZONE_OFFSET; // UTC offset in minutes
+bool manualTimezone = DEFAULT_MANUAL_TIMEZONE;
 
 // ----------------------------------------------------------------------------------
 //                                        GLOBAL VARIABLES
@@ -245,19 +250,28 @@ void setup() {
   // Check EEPROM version code
   uint8_t storedVersion = EEPROM.read(ADR_EEPROM_VERSION);
   if (storedVersion != EEPROM_VERSION_CODE) {
-    // Set new defaults
-    EEPROM.write(ADR_EEPROM_VERSION, EEPROM_VERSION_CODE);
-    EEPROM.write(ADR_NM_START_H, DEFAULT_NM_START_HOUR);
-    EEPROM.write(ADR_NM_START_M, DEFAULT_NM_START_MIN);
-    EEPROM.write(ADR_NM_END_H, DEFAULT_NM_END_HOUR);
-    EEPROM.write(ADR_NM_END_M, DEFAULT_NM_END_MIN);
-    EEPROM.write(ADR_BRIGHTNESS, DEFAULT_BRIGHTNESS);
-    setMainColor(DEFAULT_MC_RED, DEFAULT_MC_GREEN, DEFAULT_MC_BLUE);
-    EEPROM.write(ADR_STATE, st_clock);
-    EEPROM.write(ADR_NM_ACTIVATED, DEFAULT_NM_ACTIVATED);
-    EEPROM.write(ADR_COLSHIFTSPEED, DEFAULT_COLSHIFT_SPEED);
-    EEPROM.write(ADR_COLSHIFTACTIVE, DEFAULT_COLSHIFT_ACTIVE);
-    EEPROM.write(ADR_NM_BRIGHTNESS, DEFAULT_NM_BRIGHTNESS);
+    if (storedVersion == 3) {
+      EEPROM.write(ADR_MANUAL_TIMEZONE, DEFAULT_MANUAL_TIMEZONE);
+      EEPROM.put(ADR_TIMEZONE_OFFSET, static_cast<int16_t>(DEFAULT_TIMEZONE_OFFSET));
+      EEPROM.write(ADR_EEPROM_VERSION, EEPROM_VERSION_CODE);
+    }
+    else {
+      // Set new defaults
+      EEPROM.write(ADR_EEPROM_VERSION, EEPROM_VERSION_CODE);
+      EEPROM.write(ADR_NM_START_H, DEFAULT_NM_START_HOUR);
+      EEPROM.write(ADR_NM_START_M, DEFAULT_NM_START_MIN);
+      EEPROM.write(ADR_NM_END_H, DEFAULT_NM_END_HOUR);
+      EEPROM.write(ADR_NM_END_M, DEFAULT_NM_END_MIN);
+      EEPROM.write(ADR_BRIGHTNESS, DEFAULT_BRIGHTNESS);
+      setMainColor(DEFAULT_MC_RED, DEFAULT_MC_GREEN, DEFAULT_MC_BLUE);
+      EEPROM.write(ADR_STATE, st_clock);
+      EEPROM.write(ADR_NM_ACTIVATED, DEFAULT_NM_ACTIVATED);
+      EEPROM.write(ADR_COLSHIFTSPEED, DEFAULT_COLSHIFT_SPEED);
+      EEPROM.write(ADR_COLSHIFTACTIVE, DEFAULT_COLSHIFT_ACTIVE);
+      EEPROM.write(ADR_NM_BRIGHTNESS, DEFAULT_NM_BRIGHTNESS);
+      EEPROM.write(ADR_MANUAL_TIMEZONE, DEFAULT_MANUAL_TIMEZONE);
+      EEPROM.put(ADR_TIMEZONE_OFFSET, static_cast<int16_t>(DEFAULT_TIMEZONE_OFFSET));
+    }
     EEPROM.commit();
   }
 
@@ -389,7 +403,12 @@ void setup() {
   logger.logString("Reset Reason: " + ESP.getResetReason());
 
   // setup NTP
-  updateUTCOffsetFromTimezoneAPI(logger, ntp);
+  loadTimezoneSettingsFromEEPROM();
+  if (manualTimezone) {
+    ntp.setUTCOffset(utcOffset);
+  } else {
+    updateUTCOffsetFromTimezoneAPI(logger, ntp);
+  }
   ntp.setupNTPClient();
   logger.logString("NTP running");
   logger.logString("Time: " +  ntp.getFormattedTime());
@@ -597,10 +616,12 @@ void updateStateBehavior(uint8_t state){
         }
         uint8_t hours = ntp.getHours24();
         uint8_t minutes = ntp.getMinutes();
-        static uint8_t lastMinutes = 0;
+        static uint8_t lastHours = 255;
+        static uint8_t lastMinutes = 255;
         static String timeAsString = "";
-        if(lastMinutes != minutes){
+        if(lastHours != hours || lastMinutes != minutes){
           timeAsString = timeToString(hours, minutes);
+          lastHours = hours;
           lastMinutes = minutes;
         }
         showStringOnClock(timeAsString, maincolor_clock);
@@ -968,6 +989,21 @@ void loadNightmodeBrightnessFromEEPROM()
 }
 
 /**
+ * @brief Load timezone settings from EEPROM
+ */
+void loadTimezoneSettingsFromEEPROM()
+{
+  uint8_t storedManualTimezone = EEPROM.read(ADR_MANUAL_TIMEZONE);
+  manualTimezone = storedManualTimezone == 1;
+  int16_t storedUTCOffset = 0;
+  EEPROM.get(ADR_TIMEZONE_OFFSET, storedUTCOffset);
+  if (storedUTCOffset < -720 || storedUTCOffset > 840 || storedUTCOffset % 60 != 0) {
+    storedUTCOffset = DEFAULT_TIMEZONE_OFFSET;
+  }
+  utcOffset = storedUTCOffset;
+}
+
+/**
  * @brief Handler for handling commands sent to "/cmd" url
  * 
  */
@@ -1061,6 +1097,47 @@ void handleCommand() {
     logger.logString("Night mode brightness: " + String(nightModeBrightness));
     ledmatrix.setBrightness(brightness);
     lastNightmodeCheck = millis()  - PERIOD_NIGHTMODECHECK;
+  }
+  else if(server.argName(0) == "timezone"){
+    String manualValue = server.arg("timezone");
+    String offsetValue = server.arg("offset");
+    bool validOffset = offsetValue.length() > 0;
+    bool hasOffsetDigit = false;
+    for (unsigned int i = 0; i < offsetValue.length(); i++) {
+      if ((i == 0 && (offsetValue[i] == '-' || offsetValue[i] == '+')) ||
+          (offsetValue[i] >= '0' && offsetValue[i] <= '9')) {
+        if (offsetValue[i] >= '0' && offsetValue[i] <= '9') hasOffsetDigit = true;
+        continue;
+      }
+      validOffset = false;
+      break;
+    }
+    int requestedOffset = offsetValue.toInt();
+    if ((manualValue != "0" && manualValue != "1") ||
+        !validOffset || !hasOffsetDigit || requestedOffset < -720 || requestedOffset > 840 ||
+        requestedOffset % 60 != 0) {
+      server.send(400, "text/plain", "Invalid timezone settings");
+      return;
+    }
+
+    manualTimezone = manualValue == "1";
+    if (manualTimezone) {
+      utcOffset = requestedOffset;
+      ntp.setUTCOffset(utcOffset);
+    }
+    EEPROM.write(ADR_MANUAL_TIMEZONE, manualTimezone);
+    EEPROM.put(ADR_TIMEZONE_OFFSET, static_cast<int16_t>(requestedOffset));
+    EEPROM.commit();
+    logger.logString("Timezone mode: " + String(manualTimezone ? "manual" : "automatic"));
+    if (!manualTimezone) {
+      updateUTCOffsetFromTimezoneAPI(logger, ntp);
+    }
+    ntp.calcDate();
+    checkNightmode();
+    if (currentState == st_clock || currentState == st_diclock) {
+      updateStateBehavior(currentState);
+      ledmatrix.drawOnMatrixInstant();
+    }
   }
   else if (server.argName(0) == "resetwifi"){
     wifiManager.resetSettings();
@@ -1217,6 +1294,10 @@ void handleDataRequest() {
       message += "\"colorshift\":\"" + String(dynColorShiftActive) + "\"";
       message += ",";
       message += "\"colorshiftspeed\":\"" + String(dynColorShiftSpeed) + "\"";
+      message += ",";
+      message += "\"manualTimezone\":\"" + String(manualTimezone) + "\"";
+      message += ",";
+      message += "\"utcOffset\":\"" + String(utcOffset) + "\"";
     }
     message += "}";
     server.send(200, "application/json", message);

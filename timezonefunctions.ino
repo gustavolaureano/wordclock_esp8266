@@ -27,20 +27,21 @@ bool requestAPIData(UDPLogger &logger) {
         String payload = http.getString();
 
         api_timezone = getJsonParameterValue(payload, "timezone", true);
-        logger.logString("[HTTP] Received timezone: " + api_timezone);
-
         String offsetString = getJsonParameterValue(payload, "offset", false);
-        api_offset = offsetString.toInt() / 60;
-        logger.logString("[HTTP] Received offset (min): " + String(api_offset));
-
-        String latString = getJsonParameterValue(payload, "lat", false);
-        api_lat = latString.toFloat();
-        logger.logString("[HTTP] Received latitude: " + String(api_lat));
-
-        String lonString = getJsonParameterValue(payload, "lon", false);
-        api_lon = lonString.toFloat();
-        logger.logString("[HTTP] Received longitude: " + String(api_lon));
-
+        if (api_timezone.length() > 0 && offsetString.length() > 0) {
+          api_offset = offsetString.toInt() / 60;
+          api_lat = getJsonParameterValue(payload, "lat", false).toFloat();
+          api_lon = getJsonParameterValue(payload, "lon", false).toFloat();
+          logger.logString("[HTTP] Received timezone: " + api_timezone);
+          logger.logString("[HTTP] Received offset (min): " + String(api_offset));
+          logger.logString("[HTTP] Received latitude: " + String(api_lat));
+          logger.logString("[HTTP] Received longitude: " + String(api_lon));
+          res = true;
+        } else {
+          logger.logString("[HTTP] Timezone response did not contain valid timezone data");
+        }
+      } else {
+        logger.logString("[HTTP] Timezone request returned HTTP status: " + String(httpCode));
       }
     } 
     else {
@@ -94,6 +95,7 @@ String getJsonParameterValue(String json, String parameter, bool isString) {
 void updateUTCOffsetFromTimezoneAPI(UDPLogger &logger, NTPClientPlus &ntp) {
   bool res = requestAPIData(logger);
   if (res) {
-    ntp.setUTCOffset(api_offset);      
+    utcOffset = api_offset;
+    ntp.setUTCOffset(utcOffset);
   }
 }

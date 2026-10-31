@@ -20,7 +20,7 @@ Full tutorial and build instructions on https://techniccontroller.com/word-clock
 - Interactive Web-Based Games: Control PONG, TETRIS, and SNAKE directly through the built-in web UI
 - Real-time clock synchronized over Wi-Fi using NTP
 - Automatic daylight saving time (summer/winter) switching
-- Automatic timezone detection
+- Automatic timezone detection by default, with an option to select a GMT offset manually in the web settings
 - Easy Wi-Fi setup with WiFiManager
 - Configurable color themes
 - Customizable night mode (start/end time)
