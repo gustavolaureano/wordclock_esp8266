@@ -99,7 +99,7 @@ int showStringOnClock(String message, uint32_t color){
           // remember end of the word on clock
           lastLetterClock = positionOfWord + word.length();
           
-          if ((lastLetterClock+1)%WIDTH != 0)
+          if (lastLetterClock % WIDTH != 0)
           {
             // Next character does not start on a new line, 
             // so we must give a 1 char space to the next word
